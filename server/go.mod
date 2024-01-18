@@ -1,4 +1,4 @@
-module go-next-ts-chat
+module github.com/dexguitar/wskfkchat
 
 go 1.19
 
