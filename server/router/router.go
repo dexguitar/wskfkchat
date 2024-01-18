@@ -1,9 +1,9 @@
 package router
 
 import (
+	"github.com/dexguitar/wskfkchat/internal/user"
+	"github.com/dexguitar/wskfkchat/internal/ws"
 	"github.com/gin-gonic/gin"
-	"go-next-ts-chat/internal/user"
-	"go-next-ts-chat/internal/ws"
 )
 
 var r *gin.Engine

@@ -2,8 +2,8 @@ package user
 
 import (
 	"context"
+	"github.com/dexguitar/wskfkchat/util"
 	"github.com/golang-jwt/jwt/v4"
-	"go-next-ts-chat/util"
 	"strconv"
 	"time"
 )

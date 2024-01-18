@@ -1,14 +1,14 @@
 package main
 
 import (
+	"github.com/dexguitar/wskfkchat/internal/user"
+	"github.com/dexguitar/wskfkchat/internal/ws"
+	"github.com/dexguitar/wskfkchat/router"
 	"github.com/segmentio/kafka-go"
-	"go-next-ts-chat/internal/user"
-	"go-next-ts-chat/internal/ws"
-	"go-next-ts-chat/router"
 	"log"
 
+	"github.com/dexguitar/wskfkchat/db"
 	_ "github.com/lib/pq"
-	"go-next-ts-chat/db"
 )
 
 func main() {
