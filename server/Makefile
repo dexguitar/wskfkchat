@@ -16,4 +16,6 @@ migrateup:
 migratedown:
 	migrate -path db/migrations -database "postgresql://root:password@localhost:5433/wskfkchat?sslmode=disable" -verbose down
 
+
+
 .PHONY: postgresinit postgres createdb dropdb migrateup migratedown

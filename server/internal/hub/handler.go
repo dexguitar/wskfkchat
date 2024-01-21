@@ -1,7 +1,8 @@
-package ws
+package hub
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"net/http"
 )
@@ -17,8 +18,7 @@ func NewHandler(h *Hub) *Handler {
 }
 
 type CreateRoomReq struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	Name string `json:"name" bson:"name"`
 }
 
 func (h *Handler) CreateRoom(c *gin.Context) {
@@ -28,13 +28,20 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	if _, ok := h.hub.Rooms[req.Name]; ok {
-		c.JSON(http.StatusConflict, gin.H{"error": "room already exists"})
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "please provide room name"})
 		return
 	}
 
-	h.hub.Rooms[req.ID] = &Room{
-		ID:      req.ID,
+	roomID := uuid.New().String()
+	err := h.hub.MongoRepo.CreateRoom(c, roomID, req.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.hub.Rooms[req.Name] = &Room{
+		ID:      roomID,
 		Name:    req.Name,
 		Clients: make(map[string]*Client),
 	}
@@ -56,8 +63,17 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	defer conn.Close()
 
-	roomID := c.Param("roomId")
+	roomName := c.Param("roomName")
+	_, err = h.hub.MongoRepo.GetRoomByName(c, roomName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// TODO: addClient to room in mongo
+
 	clientID := c.Query("userId")
 	username := c.Query("username")
 
@@ -65,13 +81,13 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 		Conn:     conn,
 		Message:  make(chan *Message, 10),
 		ID:       clientID,
-		RoomID:   roomID,
+		RoomName: roomName,
 		Username: username,
 	}
 
 	m := &Message{
 		Content:  "👋 user joined the room",
-		RoomID:   roomID,
+		RoomName: roomName,
 		Username: username,
 	}
 
@@ -79,8 +95,12 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 	h.hub.Register <- cl
 	//	Broadcast client's message
 	h.hub.Produce(c, m)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	go cl.readSocket(h.hub)
+	go cl.ReadSocket(h.hub)
 	cl.Consume(c)
 }
 
@@ -90,14 +110,15 @@ type RoomRes struct {
 }
 
 func (h *Handler) GetRooms(c *gin.Context) {
-	rooms := make([]RoomRes, 0)
+	//rooms := make([]RoomRes, 0)
+	rooms := h.hub.MongoRepo.GetRooms(c)
 
-	for _, r := range h.hub.Rooms {
-		rooms = append(rooms, RoomRes{
-			ID:   r.ID,
-			Name: r.Name,
-		})
-	}
+	//for _, r := range h.hub.Rooms {
+	//	rooms = append(rooms, RoomRes{
+	//		ID:   r.ID,
+	//		Name: r.Name,
+	//	})
+	//}
 
 	c.JSON(http.StatusOK, rooms)
 }

@@ -1,4 +1,4 @@
-package ws
+package hub
 
 import (
 	"context"
@@ -11,17 +11,17 @@ type Client struct {
 	Conn     *websocket.Conn
 	Message  chan *Message
 	ID       string `json:"id"`
-	RoomID   string `json:"roomId"`
+	RoomName string `json:"roomName"`
 	Username string `json:"username"`
 }
 
 type Message struct {
-	Content  string `json:"content"`
-	RoomID   string `json:"roomId"`
-	Username string `json:"username"`
+	Content  string `json:"content" bson:"content"`
+	RoomName string `json:"roomName" bson:"roomName"`
+	Username string `json:"username" bson:"username"`
 }
 
-func (c *Client) readSocket(hub *Hub) {
+func (c *Client) ReadSocket(hub *Hub) {
 	defer func() {
 		hub.Unregister <- c
 		c.Conn.Close()
@@ -38,7 +38,7 @@ func (c *Client) readSocket(hub *Hub) {
 
 		msg := &Message{
 			Content:  string(m),
-			RoomID:   c.RoomID,
+			RoomName: c.RoomName,
 			Username: c.Username,
 		}
 
@@ -59,10 +59,10 @@ func (c *Client) Consume(ctx context.Context) {
 		}
 
 		// separating messages by room
-		if string(msg.Key) == c.RoomID {
+		if string(msg.Key) == c.RoomName {
 			m := &Message{
 				Content:  string(msg.Value),
-				RoomID:   string(msg.Key),
+				RoomName: string(msg.Key),
 				Username: string(msg.Headers[0].Value),
 			}
 
